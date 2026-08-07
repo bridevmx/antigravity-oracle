@@ -1,0 +1,11 @@
+[providers]
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "wget"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[start]
+cmd = "npm start"

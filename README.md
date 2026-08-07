@@ -10,9 +10,10 @@ Este repositorio contiene la configuración lista para desplegar **`antigravity-
 
 ## 🚀 Características Principales
 
+- **Compatibilidad total con Coolify**: Soporta tanto el motor predeterminado **Nixpacks** (Zero Config) como **Dockerfile**.
 - **Estrategia `hybrid`**: Combina balanceo de carga round-robin con prioridad inteligente basada en cuota disponible por cuenta.
 - **Persistencia garantizada**: Mapeo del directorio de configuración `/home/node/.config/antigravity-proxy` para no perder sesiones OAuth al reiniciar el contenedor.
-- **Seguridad**: Ejecución sobre usuario sin privilegios `node` en Alpine Linux.
+- **Seguridad**: Ejecución aislada sobre usuario sin privilegios en Node.js 20 LTS.
 - **WebUI & CLI Headless**: Panel web y comandos para vincular cuentas de Google sin interfaz gráfica.
 
 ---
@@ -23,7 +24,14 @@ Este repositorio contiene la configuración lista para desplegar **`antigravity-
 1. En tu panel de **Coolify**, dirígete a tu proyecto y selecciona **+ New Resource**.
 2. Elige **Public Repository** e introduce la URL de este repositorio:
    `https://github.com/bridevmx/antigravity-oracle`
-3. Selecciona la rama `main` y el tipo de compilación **Dockerfile**.
+3. Selecciona la rama `main`.
+
+> [!TIP]
+> **Tipo de Compilación (Build Pack)**:
+> - **Opción A (Predeterminada - Nixpacks)**: No requiere cambiar nada en Coolify. El repositorio ya incluye `package.json` y `nixpacks.toml` para que Coolify compile automáticamente la aplicación sin errores.
+> - **Opción B (Dockerfile)**: En la configuración de la aplicación en Coolify (General -> Build Pack), puedes cambiar de **Nixpacks** a **Dockerfile**.
+
+---
 
 ### Paso 2: Configuración de Variables de Entorno (Environment Variables)
 En la pestaña **Environment Variables** de Coolify, agrega las siguientes variables:
@@ -36,6 +44,8 @@ En la pestaña **Environment Variables** de Coolify, agrega las siguientes varia
 | `WEBUI_PASSWORD` | `GeneraUnaContraseñaSeguraAqui` | Contraseña para entrar a la WebUI de gestión. |
 | `NODE_ENV` | `production` | Modo de producción. |
 
+---
+
 ### Paso 3: Configurar Volumen Persistente (Storages)
 Para evitar tener que re-autenticar tus cuentas de Google cada vez que se actualice o reinicie el contenedor:
 
@@ -43,6 +53,8 @@ Para evitar tener que re-autenticar tus cuentas de Google cada vez que se actual
 2. Agrega una nueva ruta de volumen:
    - **Source Path**: `antigravity-data` (o una ruta absoluta en el host como `/var/lib/coolify/volumes/antigravity-data`)
    - **Destination Path**: `/home/node/.config/antigravity-proxy`
+
+---
 
 ### Paso 4: Puerto y Dominio (Traefik / Proxy)
 1. En la pestaña **General**, configura el puerto expuesto de la aplicación a `8080`.
@@ -68,7 +80,7 @@ Si prefieres vincular cuentas por línea de comandos dentro del contenedor:
 docker exec -it antigravity-claude-proxy sh
 
 # Ejecuta el comando de autorización manual (sin abrir navegador automáticamente)
-antigravity-claude-proxy accounts add --no-browser
+npx antigravity-claude-proxy accounts add --no-browser
 ```
 Copia la URL generada, autoriza en tu navegador, y pega el código de verificación resultante en la consola.
 

@@ -1,0 +1,16 @@
+{
+  "name": "antigravity-oracle",
+  "version": "1.0.0",
+  "description": "Antigravity Claude Proxy Deployment for Coolify",
+  "private": true,
+  "scripts": {
+    "start": "antigravity-claude-proxy start --strategy=hybrid",
+    "proxy": "antigravity-claude-proxy"
+  },
+  "dependencies": {
+    "antigravity-claude-proxy": "latest"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
