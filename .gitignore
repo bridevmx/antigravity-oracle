@@ -1,0 +1,38 @@
+# Archivos de entorno y variables secretas
+.env
+.env.local
+.env.*.local
+*.env
+
+# Archivos de configuración con secretos/tokens reales
+config.json
+!config/config.example.json
+
+# Datos locales y persistencia (base de datos SQLite, tokens OAuth, datos de cuentas)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs y temporales
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencias Node.js
+node_modules/
+package-lock.json
+
+# Llaves SSH / SSL / Certificados
+*.key
+*.pem
+*.crt
+*.pub
+
+# Archivos del sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
