@@ -10,10 +10,11 @@ Este repositorio contiene la configuración lista para desplegar **`antigravity-
 
 ## 🚀 Características Principales
 
-- **Compilación Nativa Dockerfile (ARM64 & x86_64)**: Incluye herramientas de compilación (`python3`, `make`, `g++`, `sqlite-dev`) para compilar de forma nativa `better-sqlite3` en arquitectura ARM64 / Ampere.
+- **Puerto Nativo (3000)**: Alineado con el puerto de escucha interno por defecto del proxy (`http://localhost:3000`).
+- **Healthcheck Nativo en Node.js**: Utiliza `fetch` incorporado en Node.js 20 para verificar la disponibilidad sin depender de comandos de sistema externos.
+- **Compilación Nativa ARM64 & x86_64**: Incluye herramientas de compilación (`python3`, `make`, `g++`, `sqlite-dev`) para compilar de forma nativa `better-sqlite3` en arquitectura ARM64 / Ampere.
 - **Estrategia `hybrid`**: Combina balanceo de carga round-robin con prioridad inteligente basada en cuota disponible por cuenta.
 - **Persistencia garantizada**: Mapeo del directorio de configuración `/home/node/.config/antigravity-proxy` para no perder sesiones OAuth al reiniciar el contenedor.
-- **Seguridad**: Ejecución aislada sobre usuario sin privilegios `node` en Node.js 20 LTS Alpine.
 
 ---
 
@@ -22,18 +23,17 @@ Este repositorio contiene la configuración lista para desplegar **`antigravity-
 ### Paso 1: Configurar el Recurso en Coolify
 1. En tu panel de **Coolify**, dirígete a tu proyecto y selecciona **+ New Resource**.
 2. Elige **Public Repository** e introduce la URL: `https://github.com/bridevmx/antigravity-oracle`
-3. **CRÍTICO - Seleccionar Dockerfile**:
-   En la pestaña **General** -> **Build Pack**, cambia la opción de **Nixpacks** a **Dockerfile**.
+3. En la pestaña **General** -> **Build Pack**, selecciona **Dockerfile**.
 
 ---
 
-### Paso 2: Configuración de Variables de Entorno
+### Paso 2: Configuración de Variables de Entorno (Environment Variables)
 En la pestaña **Environment Variables** de Coolify, agrega:
 
 | Variable | Valor Sugerido | Descripción |
 | :--- | :--- | :--- |
-| `PORT` | `8080` | Puerto interno en el que escucha el contenedor. |
-| `HOST` | `0.0.0.0` | Escucha en todas las interfaces. |
+| `PORT` | `3000` | Puerto en el que escucha internamente el contenedor. |
+| `HOST` | `0.0.0.0` | Escucha en todas las interfaces de red. |
 | `API_KEY` | `GeneraUnaClaveMuySeguraAqui` | Clave secreta requerida para conectar los clientes. |
 | `WEBUI_PASSWORD` | `GeneraUnaContraseñaSeguraAqui` | Contraseña para acceder a la WebUI. |
 | `NODE_ENV` | `production` | Modo de producción. |
@@ -49,8 +49,8 @@ Para no perder las sesiones de autenticación OAuth:
 
 ---
 
-### Paso 4: Puerto y Dominio
-1. En **General**, asegura que el puerto expuesto esté configurado en `8080`.
+### Paso 4: Puerto de la Aplicación en Coolify
+1. En la pestaña **General** de Coolify, asegúrate de definir el puerto de la aplicación (**Ports Exposed** / **Port**) en **`3000`**.
 2. Asigna tu FQDN/Dominio (ej. `https://proxy.midominio.com`).
 3. Haz clic en **Deploy**.
 
