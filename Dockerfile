@@ -1,8 +1,8 @@
 # Imagen base Node.js LTS en Alpine Linux
 FROM node:20-alpine
 
-# Instalar dependencias necesarias del sistema (como wget, ca-certificates)
-RUN apk add --no-cache ca-certificates wget
+# Instalar herramientas de compilación C++/Python necesarias para better-sqlite3 en ARM64 / x86_64
+RUN apk add --no-cache python3 make g++ sqlite-dev ca-certificates wget
 
 # Instalar el paquete global antigravity-claude-proxy
 RUN npm install -g antigravity-claude-proxy@latest
