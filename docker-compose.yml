@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   antigravity-proxy:
     build:
@@ -16,11 +14,11 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=${NODE_ENV:-production}
     volumes:
-      # Mapeo persistente de la configuración y tokens de autenticación
+      # Persistencia OAuth / config (mismo path que Coolify Storages)
       - ./data:/home/node/.config/antigravity-proxy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => r.status < 500 ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
-      interval: 10s
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 40s

@@ -1,86 +1,135 @@
-# Antigravity Claude Proxy — Despliegue en Coolify (Dockerfile / ARM64)
+# Antigravity Claude Proxy — Despliegue en Coolify (Dockerfile / hybrid)
 
-Este repositorio contiene la configuración lista para desplegar **`antigravity-claude-proxy`** en tu VPS (x86_64 / ARM64 Oracle Cloud) utilizando **Coolify** y la estrategia `hybrid`.
+Despliegue listo de **`antigravity-claude-proxy`** en VPS (x86_64 / ARM64) con **Coolify**, estrategia **`hybrid`** y multi-cuenta.
 
 > [!WARNING]
-> **Aviso de Términos de Servicio (ToS)**:
-> El uso de proxies de retransmisión API con cuentas personales de Google/Antigravity puede infringir las políticas de uso del servicio. Se recomienda utilizar exclusivamente cuentas de prueba o secundarias (*burner accounts*).
+> **ToS de Google**: el uso de proxies no oficiales con cuentas personales puede violar términos del servicio. Usa solo cuentas secundarias (*burner*). Asumes el riesgo.
 
 ---
 
-## 🚀 Características Principales
+## Características
 
-- **Puerto Nativo (3000)**: Alineado con el puerto de escucha interno por defecto del proxy (`http://localhost:3000`).
-- **Healthcheck Nativo en Node.js**: Utiliza `fetch` incorporado en Node.js 20 para verificar la disponibilidad sin depender de comandos de sistema externos.
-- **Compilación Nativa ARM64 & x86_64**: Incluye herramientas de compilación (`python3`, `make`, `g++`, `sqlite-dev`) para compilar de forma nativa `better-sqlite3` en arquitectura ARM64 / Ampere.
-- **Estrategia `hybrid`**: Combina balanceo de carga round-robin con prioridad inteligente basada en cuota disponible por cuenta.
-- **Persistencia garantizada**: Mapeo del directorio de configuración `/home/node/.config/antigravity-proxy` para no perder sesiones OAuth al reiniciar el contenedor.
-
----
-
-## 🛠️ Guía de Despliegue en Coolify
-
-### Paso 1: Configurar el Recurso en Coolify
-1. En tu panel de **Coolify**, dirígete a tu proyecto y selecciona **+ New Resource**.
-2. Elige **Public Repository** e introduce la URL: `https://github.com/bridevmx/antigravity-oracle`
-3. En la pestaña **General** -> **Build Pack**, selecciona **Dockerfile**.
+- **Foreground en Docker**: `start --log` como PID 1 (evita daemon / "already in orbit" / rollback de Coolify).
+- **Puerto nativo 3000**: alineado con el listener del proxy.
+- **HEALTHCHECK** con `curl` a `/health` (`start-period` 40s).
+- **Compilación nativa** `better-sqlite3` (python3, make, g++, sqlite-dev) para ARM64/x86_64.
+- **Estrategia hybrid** en el CMD y en `config/config.example.json`.
+- **Persistencia**: `/home/node/.config/antigravity-proxy`.
 
 ---
 
-### Paso 2: Configuración de Variables de Entorno (Environment Variables)
-En la pestaña **Environment Variables** de Coolify, agrega:
+## Despliegue en Coolify
 
-| Variable | Valor Sugerido | Descripción |
+### 1. Recurso
+
+1. **+ New Resource** → **Public Repository**
+2. URL: `https://github.com/bridevmx/antigravity-oracle`
+3. Branch: `main`
+4. **Build Pack** → **Dockerfile** (no Nixpacks)
+
+### 2. Environment Variables (Runtime)
+
+En Coolify → **Environment Variables**. Marca secretos como secret.  
+**`NODE_ENV` solo Runtime** (desmarca "Available at Buildtime").
+
+| Variable | Valor sugerido | Notas |
 | :--- | :--- | :--- |
-| `PORT` | `3000` | Puerto en el que escucha internamente el contenedor. |
-| `HOST` | `0.0.0.0` | Escucha en todas las interfaces de red. |
-| `API_KEY` | `GeneraUnaClaveMuySeguraAqui` | Clave secreta requerida para conectar los clientes. |
-| `WEBUI_PASSWORD` | `GeneraUnaContraseñaSeguraAqui` | Contraseña para acceder a la WebUI. |
-| `NODE_ENV` | `production` | Modo de producción. |
+| `PORT` | `3000` | Debe coincidir con Ports Exposes |
+| `HOST` | `0.0.0.0` | Obligatorio detrás de Traefik |
+| `API_KEY` | *(secreto largo)* | Bearer para clientes |
+| `WEBUI_PASSWORD` | *(secreto largo)* | Login del dashboard |
+| `NODE_ENV` | `production` | Solo runtime |
+| `FALLBACK` | `true` | Opcional |
+| `DEV_MODE` | `false` | Opcional |
+
+Plantilla comentada: [`.env.example`](./.env.example).
+
+### 3. Storages (persistencia OAuth)
+
+| Campo | Valor |
+| :--- | :--- |
+| Destination Path | `/home/node/.config/antigravity-proxy` |
+
+Sin esto, cada redeploy borra las cuentas enlazadas.
+
+### 4. Puerto y dominio
+
+1. **Ports Exposes / Port** = **`3000`**
+2. FQDN (ej. `https://proxy.midominio.com`) → SSL Let's Encrypt
+3. **Deploy**
+
+### 5. Si el healthcheck falla
+
+1. Confirma en logs **una sola** línea de arranque y que **no** aparezca spam de `already in orbit`.
+2. Debe verse el proceso en foreground (`--log`).
+3. Si hace falta depurar: desactiva healthcheck temporalmente en Coolify → verifica WebUI → reactívalo.
+4. Path de health: `/health` en puerto `3000`.
 
 ---
 
-### Paso 3: Configurar Volumen Persistente (Storages)
-Para no perder las sesiones de autenticación OAuth:
+## Vinculación de cuentas Google
 
-1. Ve a la pestaña **Storages** en Coolify.
-2. Agrega la ruta de volumen:
-   - **Destination Path**: `/home/node/.config/antigravity-proxy`
+### WebUI
 
----
+1. Abre `https://tu-dominio`
+2. Entra con `WEBUI_PASSWORD`
+3. **Accounts → Add Account** (modo manual/headless si no hay browser en el server)
+4. Settings → confirma strategy **hybrid**
 
-### Paso 4: Puerto de la Aplicación en Coolify
-1. En la pestaña **General** de Coolify, asegúrate de definir el puerto de la aplicación (**Ports Exposed** / **Port**) en **`3000`**.
-2. Asigna tu FQDN/Dominio (ej. `https://proxy.midominio.com`).
-3. Haz clic en **Deploy**.
+### CLI headless (terminal del contenedor en Coolify)
 
----
-
-## 🔐 Vinculación de Cuentas Google OAuth
-
-### Desde la WebUI:
-1. Navega a `https://proxy.midominio.com`.
-2. Inicia sesión con tu `WEBUI_PASSWORD`.
-3. Sigue el asistente para vincular cuentas Google.
-
-### Desde Terminal (CLI Headless):
 ```bash
-docker exec -it antigravity-claude-proxy sh
 antigravity-claude-proxy accounts add --no-browser
 ```
 
----
+Autoriza la URL en tu PC y pega el código de vuelta.
 
-## 🔌 Configuración de Clientes
+Ver cuota:
 
-### Claude Code CLI
 ```bash
-export ANTHROPIC_BASE_URL="https://proxy.midominio.com"
-export ANTHROPIC_API_KEY="TU_API_KEY"
+curl -fsS https://tu-dominio/health
+# account-limits (si el endpoint está expuesto en tu versión)
 ```
 
 ---
 
-## 📄 Licencia
+## Clientes
 
-MIT
+### Claude Code CLI
+
+```bash
+export ANTHROPIC_BASE_URL="https://tu-dominio"
+export ANTHROPIC_API_KEY="TU_API_KEY"
+```
+
+### OpenCode / OpenAI-compatible
+
+Apunta el provider a `https://tu-dominio` (o la base que documente tu versión del proxy) con header:
+
+`Authorization: Bearer TU_API_KEY`
+
+---
+
+## Prueba local (opcional)
+
+```bash
+cp .env.example .env
+# edita API_KEY y WEBUI_PASSWORD
+docker compose up --build
+curl -fsS http://127.0.0.1:3000/health
+```
+
+---
+
+## Seguridad
+
+- Nunca subas `.env` ni el volumen `data/` al git.
+- Rota `API_KEY` si se filtra.
+- Solo cuentas burner.
+- No expongas el puerto del host sin auth; usa el reverse proxy de Coolify + `API_KEY`.
+
+---
+
+## Licencia
+
+MIT. El binario `antigravity-claude-proxy` es proyecto de terceros; respeta su licencia y los ToS de Google.
