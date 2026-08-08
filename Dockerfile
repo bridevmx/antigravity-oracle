@@ -7,9 +7,9 @@ RUN apk add --no-cache python3 make g++ sqlite-dev ca-certificates curl
 # Instalar el paquete global antigravity-claude-proxy
 RUN npm install -g antigravity-claude-proxy@latest
 
-# Directorio de configuración persistente (tokens OAuth / config)
-RUN mkdir -p /home/node/.config/antigravity-proxy && \
-    chown -R node:node /home/node/.config
+# Path real de storage del proxy (ver logs: Storage: /home/node/.antigravity-claude-proxy)
+RUN mkdir -p /home/node/.antigravity-claude-proxy && \
+    chown -R node:node /home/node/.antigravity-claude-proxy
 
 # Usuario no privilegiado
 USER node
@@ -23,10 +23,11 @@ ENV HOST=0.0.0.0 \
 
 EXPOSE 3000
 
-# start-period generoso: el proxy tarda en levantar el listener
+# /health devuelve 401 si API_KEY está configurada. curl -f marca 401 como error.
+# Cualquier respuesta del servidor (< connection error) con 200 o 401 = healthy.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
-  CMD curl -fsS "http://127.0.0.1:3000/health" || exit 1
+  CMD code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/health) && \
+      [ "$code" = "200" ] || [ "$code" = "401" ]
 
-# CRÍTICO: --log mantiene el proceso en foreground (PID 1).
-# Sin --log, "start" daemoniza → "already in orbit" + healthcheck unhealthy en Coolify.
+# --log = foreground (PID 1). hybrid = multi-cuenta inteligente.
 CMD ["antigravity-claude-proxy", "start", "--log", "--strategy=hybrid"]

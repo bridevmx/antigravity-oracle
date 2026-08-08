@@ -14,10 +14,14 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=${NODE_ENV:-production}
     volumes:
-      # Persistencia OAuth / config (mismo path que Coolify Storages)
-      - ./data:/home/node/.config/antigravity-proxy
+      # Path real de runtime (logs del proxy v2.8.5)
+      - ./data:/home/node/.antigravity-claude-proxy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      test:
+        [
+          "CMD-SHELL",
+          "code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health) && [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"401\" ]",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
